@@ -18,7 +18,7 @@ import time
 from telegram.error import Forbidden,BadRequest, TimedOut
 
 # Bot configuration
-TOKEN: Final = '7007935023:AAENkGaklw6LMJA_sfhVZhnoAgIjW4lDTBc'
+TOKEN: Final = '7544102526:AAFayGO2G39nwZI7TtdKVS32YDZtbs7WRak'
 BOT_USERNAME: Final = '@slizyy_bot'
 ALLOWED_GROUP_IDS = [-1002114430690,-1002101571866, -1002114430690]
 EXCEL_FILE = 'SYNO5.xlsx'
