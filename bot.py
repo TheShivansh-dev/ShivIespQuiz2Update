@@ -3,11 +3,10 @@
 #BOT_USERNAME: Final = '@slizyy_bot'
 #TOKEN: Final = '7007935023:AAENkGaklw6LMJA_sfhVZhnoAgIjW4lDTBc'
 #BOT_USERNAME: Final = '@Grovieee_bot'
-#ALLOWED_GROUP_IDS = [-1001817635995, -1002114430690]
+#ALLOWED_GROUP_IDS = [-1002114430690, -1002114430690]
 
 import os
 import random
-import re
 import pandas as pd
 import openpyxl
 from typing import Final
@@ -15,24 +14,21 @@ from telegram import Update, PollAnswer, Poll, InlineKeyboardButton, InlineKeybo
 from telegram.ext import Application, CommandHandler, PollAnswerHandler, CallbackQueryHandler, ContextTypes
 from collections import defaultdict
 import asyncio
-from openpyxl import load_workbook, Workbook
 import time
 from telegram.error import Forbidden,BadRequest, TimedOut
-import telegram
 
 # Bot configuration
-TOKEN: Final = '7673671830:AAFaDzia9GXrXAz86UEFwzkXGB7OUEFb3xM'
+TOKEN: Final = '7007935023:AAENkGaklw6LMJA_sfhVZhnoAgIjW4lDTBc'
 BOT_USERNAME: Final = '@slizyy_bot'
-ALLOWED_GROUP_IDS = [-1001817635995, -1002114430690,-1002359766306]
+ALLOWED_GROUP_IDS = [-1002114430690,-1002101571866, -1002114430690]
 EXCEL_FILE = 'SYNO5.xlsx'
-SCORE_FILE="user_scores.xlsx"
 
 
 
 # Global state variables
 
 quiz_state = {}
-correct_users = {}  # Tracks correct answers per user
+correct_users = defaultdict(int)  # Tracks correct answers per user
 selected_poll_count = 0 
 selected_quizscore_count=0
 active_poll=1 # Number of polls user requested
@@ -44,7 +40,6 @@ unanswered_poll = 0
 cancel_active = False
 display_chat=0
 Quiz_grammar_type =''
-quiz_kick= False
 
 # Load quiz data from Excel
 used_srnos = set()
@@ -90,133 +85,26 @@ def load_quiz_data(file_path, selected_poll_count):
         return polls
     except Exception as e:
         print(e)
-def escape_markdown(text: str) -> str:
-    return re.sub(r'([_\*\[\]\(\)~`>#+\-=|{}.!])', r'\\\1', text)
-async def delete_user_scores(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """
-    Deletes all rows in the userscore table except the headers.
-    """
-    try:
-        # Load the workbook and sheet
-        workbook = load_workbook(SCORE_FILE)
-        sheet = workbook.active
-
-        # Check if there are rows to delete (beyond the header)
-        if sheet.max_row > 1:
-            # Delete all rows except the header
-            sheet.delete_rows(2, sheet.max_row - 1)
-
-            # Save the updated workbook
-            workbook.save(SCORE_FILE)
-
-            await update.message.reply_text("All user scores have been deleted successfully.")
-        else:
-            await update.message.reply_text("The user score table is already empty.")
-
-    except FileNotFoundError:
-        await update.message.reply_text("The score file does not exist. No action was taken.")
-    except Exception as e:
-        await update.message.reply_text(f"An error occurred while deleting scores: {e}")
-def load_scores():
-    if not os.path.exists(SCORE_FILE):
-        return []
-
-    workbook = openpyxl.load_workbook(SCORE_FILE)
-    sheet = workbook.active
-
-    scores = []
-    for row in range(2, sheet.max_row + 1):  # Start from row 2 to skip the header
-
-        user_id = sheet.cell(row=row, column=2).value
-        username = sheet.cell(row=row, column=3).value
-        score = sheet.cell(row=row, column=4).value
-        round = sheet.cell(row=row, column=5).value
-
-        if user_id and username and score and round is not None:
-            scores.append((user_id, username, score,round))
-
-    workbook.close()
-    return scores
-
-async def select_top_10_users(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    scores = load_scores()
-    if not scores:
-        try:
-            await update.message.reply_text("No scores found")
-        except telegram.error.BadRequest:
-            await update.message.chat.send_message("No scores found")
-        return
-    # Sort by score in descending order
-    scores.sort(key=lambda x: x[2], reverse=True)
-    # Get the top 10 users
-    top_10 = scores[:10]
-
-    # Build the message to display top users
-    message = "*Top 10 Scorer of The month:*\n\n"
-    for idx, (user_id, username, score,round) in enumerate(top_10, 1):
-        message += f"{idx}: @{escape_markdown(str(username))} \nScore: {escape_markdown(str(score))}      Rounds: {round} \n\n"
-    try:
-        await update.message.reply_text(message, parse_mode='MarkdownV2')
-    except telegram.error.BadRequest:
-        await update.message.chat.send_message(message, parse_mode='MarkdownV2')
-
-# Command to show the user's rank and score
-async def my_rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.message.from_user.id
-    username = update.message.from_user.username or update.message.from_user.first_name
-
-    scores = load_scores()
-
-    if not scores:
-        try:
-            await update.message.reply_text("No scores found")
-        except telegram.error.BadRequest:
-            await update.message.chat.send_message("No scores found")
-        return
-
-    # Sort by score in descending order
-    scores.sort(key=lambda x: x[2], reverse=True)
-
-    # Find user's rank
-    user_rank = None
-
-    for rank, (u_id, u_name, score,round) in enumerate(scores, 1):
-        
-        if str(u_id) == str(user_id):
-            user_rank = (rank, score, round)
-            break
-
-    if user_rank:
-        rank, score,round = user_rank
-        try:
-            await update.message.reply_text(f"Your rank: {rank}\nYour score: {score} in {round} round")
-        except telegram.error.BadRequest:
-            await update.message.chat.send_message(f"Your rank: {rank}\nYour score: {score} in {round} round")
-    else:
-        try:
-            await update.message.reply_text("You haven't played the game yet")
-        except telegram.error.BadRequest:
-            await update.message.chat.send_message("You haven't played the game yet")
-
-# Function to get a random word from the Excel file
 
 async def start_game_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        global is_quiz_active, correct_users, chat_id, unanswered_poll,cancel_active,selected_quizscore_count,quiz_kick
+        global is_quiz_active, correct_users, chat_id, unanswered_poll,cancel_active,selected_quizscore_count
         cancel_active = False
-        quiz_kick= False
         
         reset_used_srnos()
         chat_id = update.message.chat.id
-        
+        print(chat_id)
         if chat_id not in ALLOWED_GROUP_IDS:
             try:
-                
-                
+                await update.message.chat.send_photo(
+                    photo="academyposter.jpg",  # Replace with the path or URL of the image
+                    caption="Join This Academy for amazing quizzes!"
+                )
                 await update.message.reply_text("To Make your Own Bot and Start The Quiz In Your Group Talk to the Bot Creater @O000000000O00000000O")
             except (BadRequest, Forbidden, TimedOut) as e:
                 await update.message.chat.send_message("To Make your Own Bot and Start The Quiz In Your Group Talk to the Bot Creater @O000000000O00000000O")
             return
+        chat_id = -1002101571866
         # Check if a quiz is already active
         if is_quiz_active:
             try:
@@ -243,6 +131,7 @@ async def start_game_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 print(f"Error canceling the quiz: {e}")
     except (BadRequest, Forbidden, TimedOut) as e:
                 print(e)
+            
 #================================================================Option buttons For Quiz Type 
 def Nda_keyboard0():
     return [
@@ -259,7 +148,7 @@ def Nda_keyboard1():
         [InlineKeyboardButton("Active-passive", callback_data='difficulty_acitvepassive_nda')],
         [InlineKeyboardButton("Fill in the Blanks", callback_data='difficulty_fillblank_nda')],
         [InlineKeyboardButton("Sentence Arrangement", callback_data='difficulty_nda_sentenceArrange')], 
-        [InlineKeyboardButton("🏎️  Back ", callback_data='type_NDA0'),InlineKeyboardButton("Next 🧑‍🦯‍➡️", callback_data='type_NDA0')],
+        [InlineKeyboardButton("🏎️  Previous ", callback_data='type_NDA0'),InlineKeyboardButton("Next 🧑‍🦯‍➡️", callback_data='type_NDA2')],
         
     ]
 def Nda_keyboard2():
@@ -267,15 +156,10 @@ def Nda_keyboard2():
         [InlineKeyboardButton("Reasoning", callback_data='difficulty_nda_reasoning')],
         [InlineKeyboardButton("Physics-Chem-bio", callback_data='difficulty_nda_pcb')],
         [InlineKeyboardButton("Maths", callback_data='difficulty_nda_maths')],
-        [InlineKeyboardButton("🏎️  Back", callback_data='type_NDA1'),InlineKeyboardButton("Next 🧑‍🦯‍➡️", callback_data='type_NDA0')]
+        [InlineKeyboardButton("🏎️  Previous", callback_data='type_NDA1'),InlineKeyboardButton("Next 🧑‍🦯‍➡️", callback_data='type_NDA0')]
         
     ]
 
-
-
-
-
-#================================================================Option buttons For Quiz Type 
 async def handle_type_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         query = update.callback_query
@@ -326,19 +210,14 @@ async def handle_type_selection(update: Update, context: ContextTypes.DEFAULT_TY
                 await query.message.chat.send_message('NDA Selected \n Select the Grammar Quiz type:', reply_markup=reply_markup)
             except (BadRequest, Forbidden, TimedOut) as e:
                 print(f"Error canceling the quiz: {e}")
+        
         elif query.data == 'type_BASIC':
             selected_button_text = f"@{username} Selected Basic English Grammar\n Please wait..."
             try:
                 await query.edit_message_text(text=selected_button_text)
             except (BadRequest, Forbidden, TimedOut) as e:
                 print(f"Error canceling the quiz: {e}")
-            difficulty_keyboard = [
-                [InlineKeyboardButton("Synonyms", callback_data='difficulty_synonyms')],
-                [InlineKeyboardButton("Antonyms", callback_data='difficulty_antonyms')],
-                [InlineKeyboardButton("Spelling Correction", callback_data='difficulty_spellcorr')],
-                [InlineKeyboardButton("Sentence Correction", callback_data='difficulty_sentcorr')],
-            ]
-            reply_markup = InlineKeyboardMarkup(difficulty_keyboard)
+            
             
             try:
                 await query.message.chat.send_message('Basic Grammar Selected \n Select the Grammar Quiz type:', reply_markup=reply_markup)
@@ -454,21 +333,11 @@ async def handle_difficulty_selection(update: Update, context: ContextTypes.DEFA
             
 
         # Proceed with time limit selection
-        if(Quiz_grammar_type !='Reasoning' and Quiz_grammar_type !='Maths'):
-            time_keyboard = [
-            [InlineKeyboardButton("10 Seconds", callback_data='time_10')],
-            [InlineKeyboardButton("15 Seconds", callback_data='time_15')],
-            [InlineKeyboardButton("20 Seconds", callback_data='time_20')],
-            [InlineKeyboardButton("30 Seconds", callback_data='time_30')],
+        time_keyboard = [
+            [InlineKeyboardButton("10 s", callback_data='time_10'), InlineKeyboardButton("15 s", callback_data='time_15'),InlineKeyboardButton("25 s", callback_data='time_20')],
+            [InlineKeyboardButton("35 s", callback_data='time_35'), InlineKeyboardButton("1 min", callback_data='time_60'),InlineKeyboardButton("1:30 s", callback_data='time_90')],
             
-            ]
-        else:
-            time_keyboard = [
-            [InlineKeyboardButton("30 Seconds", callback_data='time_30')],
-            [InlineKeyboardButton("45 Seconds", callback_data='time_45')],
-            [InlineKeyboardButton("60 Seconds", callback_data='time_60')],
-            [InlineKeyboardButton("90 Seconds", callback_data='time_90')],
-            ]
+        ]
         reply_markup = InlineKeyboardMarkup(time_keyboard)
         try:
             await query.message.chat.send_message(f"{difficulty_message}. Select the time limit for each poll:", reply_markup=reply_markup)
@@ -495,13 +364,13 @@ async def handle_time_selection(update: Update, context: ContextTypes.DEFAULT_TY
 
         # Map callback data to actual time values
         time_mapping = {
-            'time_10': 4,
+            'time_10': 10,
             'time_15': 15,
-            'time_20': 20,
-            'time_30': 30,
-            'time_45': 45,
+            'time_25': 25,
+            'time_35': 35,
             'time_60': 60,
-            'time_90': 90,
+            'time_95': 90,
+
         }
         selected_time_limit = time_mapping.get(query.data, 10)
         selected_time_text = f"@{username} selected {selected_time_limit} second To complete one quiz. "
@@ -537,9 +406,9 @@ async def cancel_quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE
         msg_id = update.message.chat.id
         if msg_id not in ALLOWED_GROUP_IDS:
             try:
-                await update.message.reply_text("To Make your Own Bot and Start The Quiz In Your Group Talk to the Bot Creater @O000000000O00000000O    ")
+                await update.message.reply_text("To Make your Own Bot and Start The Quiz In Your Group Talk to the Bot Creater @O000000000O00000000O")
             except (BadRequest, Forbidden, TimedOut) as e:
-                await update.message.chat.send_message("To Make your Own Bot and Start The Quiz In Your Group Talk to the Bot Creater @O000000000O00000000O    ")
+                await update.message.chat.send_message("To Make your Own Bot and Start The Quiz In Your Group Talk to the Bot Creater @O000000000O00000000O")
             return
         # Check if the quiz is active
         chat_id = update.message.chat.id
@@ -567,16 +436,16 @@ async def cancel_quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE
 # Handle button click and start quizzes
 async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        global selected_poll_count,active_poll,cancel_active,quiz_kick
+        global selected_poll_count,active_poll,cancel_active
         query = update.callback_query
         username = query.from_user.username or query.from_user.first_name
-      
+        chat_id = -1002101571866
         # If quiz is not active, ignore this input
         if not is_quiz_active:
             await query.answer("Please start a new quiz with /startquiz or cancel with /cancelquiz")
             return
 
-        selected_poll_count = 5 #int(query.data)
+        selected_poll_count = int(query.data)
         active_poll = selected_poll_count
         selected_rounds_text = f"@{username} selected {selected_poll_count} rounds. Starting the quiz..."
 
@@ -586,7 +455,7 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
         except (BadRequest, Forbidden, TimedOut) as e:
                 print(f"Error canceling the quiz: {e}")
             
-
+        chat_id = -1002114430690
         cancel_active = True
         selected_polls = load_quiz_data(EXCEL_FILE,selected_poll_count) 
         selected_polls.append({
@@ -598,9 +467,6 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
         
         
         for i, poll in enumerate(selected_polls):
-
-            if quiz_kick:
-                break
             try:
                 poll_message = await context.bot.send_poll(
                 chat_id=chat_id, 
@@ -638,7 +504,6 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
 # Countdown and close poll after time expires, with sending meaning
 async def countdown_and_close_poll(poll_message, countdown_time, context):
     try:
-        global quiz_kick
         # Wait for the countdown time to pass
         await asyncio.sleep(countdown_time)
         print("enter here 1")
@@ -649,7 +514,6 @@ async def countdown_and_close_poll(poll_message, countdown_time, context):
             # If the bot was kicked from the group, reset the quiz state for the chat
             chat_id = poll_message.chat.id
             global is_quiz_active
-            quiz_kick = True
 
             is_quiz_active = False  # Mark the quiz as inactive
             quiz_state.clear()  # Clear the quiz state
@@ -682,7 +546,8 @@ async def countdown_and_close_poll(poll_message, countdown_time, context):
                 await context.bot.send_message(chat_id=quiz_data["chat_id"], text=f"Meaning: {meaning}")             
             except (BadRequest, Forbidden, TimedOut) as e:                 
                 print(f"Error canceling the quiz: {e}")
-
+                
+        
         # Add a small delay before proceeding to the next poll
         await asyncio.sleep(1)
     except (BadRequest, Forbidden, TimedOut) as e:
@@ -693,18 +558,19 @@ final_poll_responses = {}
 # Handle poll answers
 async def handle_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        global final_poll_responses, display_chat, selected_quizscore_count, correct_users
-
+        global final_poll_responses,display_chat,selected_quizscore_count
+        
         answer: PollAnswer = update.poll_answer
         poll_id = answer.poll_id
-        user_id = str(answer.user.id)  # Ensure user_id is always treated as a string
-        username = answer.user.username or answer.user.first_name or user_id
+        user_id = answer.user.id
+        username = answer.user.username or answer.user.first_name or str(user_id)
+        #username = answer.user.username  # Get the username of the user
         selected_options = answer.option_ids
-
+        
         # Check if poll ID exists in quiz_state
         if poll_id not in quiz_state:
             return
-
+        
         # Get the quiz data for the poll
         quiz_data = quiz_state[poll_id]
         correct_answer = quiz_data["correct_answer"]
@@ -718,124 +584,28 @@ async def handle_poll_answer(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
         # Store the user's response temporarily (no scoring yet)
         quiz_data["responses"][user_id] = selected_answer
-
+        
         # Track correct answers
         if selected_answer == correct_answer:
-            if curr_poll == selected_poll_count + 1:
-                print("skip this part")
+            if curr_poll == selected_poll_count+1:
+                 print("skip this part")
             else:
-                # Initialize or update the user's score in correct_users
-                if user_id not in correct_users:
-                    correct_users[user_id] = {"username": username, "score": 0}
-                correct_users[user_id]["score"] += 1  # Increment the score
+                correct_users[username] += 1
                 
         if user_id not in quiz_data["users"]:
             quiz_data["users"].append(user_id)
-
-        # Handle the last poll
-        if curr_poll == selected_poll_count + 1:
-            print("equal equal", selected_quizscore_count)
+        # If it's the last poll, track user responses specifically for this poll
+        if curr_poll == selected_poll_count+1:
+            print("equal equal",selected_quizscore_count)
             await asyncio.sleep(5)
-            if selected_quizscore_count == 0:
-                print("equal equal 2", selected_quizscore_count)
-                await calculate_scores(update, context)
-                update_user_score(correct_users)
-                final_poll_responses = {}
-                selected_quizscore_count = 1
-
+            if selected_quizscore_count ==0:
+                 print("equal equal 2",selected_quizscore_count)
+                 await calculate_scores(update, context)
+                 final_poll_responses = {}
+                 selected_quizscore_count =1
+        
     except (BadRequest, Forbidden, TimedOut) as e:
         print(e)
-
-async def download_scores_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        chat_id = update.message.chat.id
-        
-        # Check if the chat_id (group ID) is in the allowed list
-    
-        if chat_id not in ALLOWED_GROUP_IDS:
-            try:
-                await update.message.reply_text("Due to the free service, you are not allowed to start a game in this group. Play there https://t.me/+yVFKtplWZUA0Yzhl or contact @O000000000O00000000O")
-            except telegram.error.BadRequest:
-                await update.message.chat.send_message("Due to the free service, you are not allowed to start a game in this group. Play there https://t.me/+yVFKtplWZUA0Yzhl or contact @O000000000O00000000O")
-            return
-
-        # Check if the file exists
-        if os.path.exists(SCORE_FILE):
-            # Send the file to the user
-            with open(SCORE_FILE, 'rb') as file:
-                await context.bot.send_document(chat_id=update.message.chat.id, document=file)
-        else:
-            # Notify the user that the file does not exist
-            await update.message.reply_text("Sorry, the score file is not available.")
-    except Exception as e:
-        # Handle any errors
-        await update.message.reply_text(f"An error occurred: {e}")
-
-def update_user_score(correct_users):
-    """
-    Update user scores in an Excel file. Add new users if they don't exist.
-    """
-    try:
-        game_round = 1
-        # Load existing workbook or create a new one
-        try:
-            workbook = load_workbook(SCORE_FILE)
-            sheet = workbook.active
-        except FileNotFoundError:
-            workbook = Workbook()
-            sheet = workbook.active
-            sheet.title = "Scores"
-            sheet.append(["Sr No", "User ID", "Username", "Score", "Round"])
-
-        # Load existing scores into a dictionary
-        existing_scores = {}
-        for row in sheet.iter_rows(min_row=2, values_only=True):
-            if row:  # Ensure row is not empty
-                if len(row) == 5:  # If all 5 columns are present
-                    sr_no, user_id, username, score, round = row
-                elif len(row) == 4:  # Missing "Round" column, initialize round to 0
-                    sr_no, user_id, username, score = row
-                    round = 0
-                else:
-                    continue  # Skip invalid rows
-
-                existing_scores[str(user_id)] = {
-                    "sr_no": sr_no,
-                    "username": username,
-                    "score": int(score),
-                    "round": int(round)
-                }
-
-        # Update scores based on correct_users
-        for user_id, data in correct_users.items():
-            username = data["username"]
-            new_score = data["score"]
-
-            if user_id in existing_scores:
-                # Update existing user's score
-                existing_scores[user_id]["score"] += new_score
-                existing_scores[user_id]["round"] += game_round
-            else:
-                # Add new user
-                sr_no = len(existing_scores) + 1
-                existing_scores[user_id] = {
-                    "sr_no": sr_no,
-                    "username": username,
-                    "score": new_score,
-                    "round": game_round
-                }
-
-        # Clear existing rows and rewrite updated scores
-        sheet.delete_rows(2, sheet.max_row)
-        for user_id, data in existing_scores.items():
-            sheet.append([data["sr_no"], user_id, data["username"], data["score"], data["round"]])
-
-        # Save workbook
-        workbook.save(SCORE_FILE)
-        print("Scores updated successfully.")
-
-    except Exception as e:
-        print(f"Error updating scores: {e}")
 
 # Function to calculate scores
 async def calculate_scores(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -848,38 +618,29 @@ async def calculate_scores(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Display quiz results, even if only partial or no responses are available
 async def display_results(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    global is_quiz_active, Quiz_grammar_type, correct_users
+    global is_quiz_active,Quiz_grammar_type
     cancel_active = False
-
+    
     if display_chat:
-        chatid = display_chat
+        chatid = display_chat 
     else:
-        chatid = chat_id  # Ensure `chatid` is used correctly here.
+        chat_id = chat_id
 
     # Check if there are any scores to display
     try:
-        result_message = (
-            f"🎉 Quiz Results: 🥳🥳🥳🥳\nIn {Quiz_grammar_type} Out Of {selected_poll_count}\n"
-            "Here are the top scorers of This Round:\n\n"
-        )
-
+        result_message = "🎉 Quiz Results: 🥳🥳🥳🥳\n In "+Quiz_grammar_type+" Out Of "+ str(selected_poll_count) + "\n Here are the top scorers of This Round:\n\n"
+        
+        
         # Sort by the number of correct answers and display each username with their score
-        sorted_results = sorted(
-            correct_users.items(),
-            key=lambda x: x[1]["score"],  # Sort by the "score" field
-            reverse=True
-        )
-
+        sorted_results = sorted(correct_users.items(), key=lambda x: x[1], reverse=True)
+        
         top_10_results = sorted_results[:10]
-
+        
         if not top_10_results:
             result_message = "No scores received. No one answered correctly."
         else:
             p = 1
-            for user_id, user_data in top_10_results:
-                username = user_data["username"]
-                score = user_data["score"]
-
+            for username, score in top_10_results:
                 if p == 1:
                     result_message += f"🏆)- @{username}: {score}\n"
                 elif p == 2:
@@ -889,17 +650,15 @@ async def display_results(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 else:
                     result_message += f"🧌{p})- @{username}: {score}\n"
                 p += 1
-
-        result_message += "\nTo start this quiz again, write or click /startquiz"
-
+        result_message = result_message + "\n To start This Quiz Again Write or Click /startquiz"
         # Send the results message to the chat
         try:
             await context.bot.send_message(chat_id=chatid, text=result_message)
         except Exception as e:
             print(f"Error sending message: {e}")
-
+    
     except Exception as e:
-        print(f"Error preparing results message: {e}")
+        print(f"Error sending message: {e}")
 
     # Reset quiz active state
     is_quiz_active = False
@@ -921,13 +680,10 @@ def main():
     application.add_handler(CallbackQueryHandler(handle_button_click, pattern=r'^\d+$'))
     application.add_handler(PollAnswerHandler(handle_poll_answer))
     application.add_handler(CommandHandler('cancelquiz', cancel_quiz_command))
-    application.add_handler(CommandHandler('myrank', my_rank))
-    application.add_handler(CommandHandler('top10score', select_top_10_users))
-    application.add_handler(CommandHandler('deleteuserscores0404', delete_user_scores))
-    application.add_handler(CommandHandler('downloadscoreiesp', download_scores_command))
 
     # Start the bot
     application.run_polling()
+    
 
 if __name__ == '__main__':
     main()
