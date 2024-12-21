@@ -14,7 +14,6 @@ async def shutdown():
 def handle_sigterm(signum, frame):
     asyncio.run(shutdown())
 
-signal.signal(signal.SIGTERM, handle_sigterm)
 
 
 
