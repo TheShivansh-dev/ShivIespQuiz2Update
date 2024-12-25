@@ -3,7 +3,7 @@
 #BOT_USERNAME: Final = '@slizyy_bot'
 #TOKEN: Final = '7007935023:AAENkGaklw6LMJA_sfhVZhnoAgIjW4lDTBc'
 #BOT_USERNAME: Final = '@Grovieee_bot'
-#ALLOWED_GROUP_IDS = [-1001817635995, -1002114430690]
+#ALLOWED_GROUP_IDS = [-1002114430690, -1002114430690,1001817635995]
 
 import os
 import random
@@ -20,9 +20,8 @@ from telegram.error import Forbidden,BadRequest, TimedOut
 # Bot configuration
 TOKEN: Final = '7544102526:AAFayGO2G39nwZI7TtdKVS32YDZtbs7WRak'
 BOT_USERNAME: Final = '@slizyy_bot'
-ALLOWED_GROUP_IDS = [-1002114430690,-1002101571866, -1002114430690]
+ALLOWED_GROUP_IDS = [1001817635995,-1002114430690,-1002101571866, -1002114430690]
 EXCEL_FILE = 'SYNO5.xlsx'
-
 
 
 
@@ -94,12 +93,18 @@ async def start_game_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
         
         reset_used_srnos()
         chat_id = update.message.chat.id
+        print(chat_id)
         if chat_id not in ALLOWED_GROUP_IDS:
             try:
-                await update.message.reply_text("To Start This Quiz In Your Chat or Group Talk to My Sizzling Owner @V_ale_n_cia and say thanks to me in later")
+                await update.message.chat.send_photo(
+                    photo="academyposter.jpg",  # Replace with the path or URL of the image
+                    caption="Join This Academy for amazing quizzes!"
+                )
+                await update.message.reply_text("To Make your Own Bot and Start The Quiz In Your Group Talk to the Bot Creater @O000000000O00000000O")
             except (BadRequest, Forbidden, TimedOut) as e:
-                await update.message.chat.send_message("To Start This Quiz In Your Chat or Group Talk to My Sizzling Owner @V_ale_n_cia and say thanks to me in later")
+                await update.message.chat.send_message("To Make your Own Bot and Start The Quiz In Your Group Talk to the Bot Creater @O000000000O00000000O")
             return
+        chat_id = -1002101571866
         # Check if a quiz is already active
         if is_quiz_active:
             try:
@@ -116,8 +121,8 @@ async def start_game_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
         correct_users.clear()  # Reset scores at the beginning of each new quiz
 
         difficulty_keyboard = [
-            [InlineKeyboardButton("NDA-CDS's English Grammar", callback_data='type_NDA')],
-            [InlineKeyboardButton("Random English Grammar", callback_data='type_BASIC')],
+            [InlineKeyboardButton("NDA-CDS", callback_data='type_NDA0')],
+            [InlineKeyboardButton("English Grammar", callback_data='type_BASIC')],
         ]
         reply_markup = InlineKeyboardMarkup(difficulty_keyboard)
         try:
@@ -127,6 +132,33 @@ async def start_game_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
     except (BadRequest, Forbidden, TimedOut) as e:
                 print(e)
             
+#================================================================Option buttons For Quiz Type 
+def Nda_keyboard0():
+    return [
+        [InlineKeyboardButton("Synonyms", callback_data='difficulty_synonyms_nda')],
+        [InlineKeyboardButton("Antonyms", callback_data='difficulty_nda_antonyms')],
+        [InlineKeyboardButton("Idiom-Phrase", callback_data='difficulty_idiomphrase_nda')],
+        [InlineKeyboardButton("One word Substitute", callback_data='difficulty_nda_ows')],
+        [InlineKeyboardButton("🧑‍🦯‍➡️ Next 🧑‍🦯‍➡️", callback_data='type_NDA1')]
+    ]        
+
+def Nda_keyboard1():
+    return [
+        
+        [InlineKeyboardButton("Active-passive", callback_data='difficulty_acitvepassive_nda')],
+        [InlineKeyboardButton("Fill in the Blanks", callback_data='difficulty_fillblank_nda')],
+        [InlineKeyboardButton("Sentence Arrangement", callback_data='difficulty_nda_sentenceArrange')], 
+        [InlineKeyboardButton("🏎️  Previous ", callback_data='type_NDA0'),InlineKeyboardButton("Next 🧑‍🦯‍➡️", callback_data='type_NDA2')],
+        
+    ]
+def Nda_keyboard2():
+    return [
+        [InlineKeyboardButton("Reasoning", callback_data='difficulty_nda_reasoning')],
+        [InlineKeyboardButton("Physics-Chem-bio", callback_data='difficulty_nda_pcb')],
+        [InlineKeyboardButton("Maths", callback_data='difficulty_nda_maths')],
+        [InlineKeyboardButton("🏎️  Previous", callback_data='type_NDA1'),InlineKeyboardButton("Next 🧑‍🦯‍➡️", callback_data='type_NDA0')]
+        
+    ]
 
 async def handle_type_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
@@ -142,26 +174,43 @@ async def handle_type_selection(update: Update, context: ContextTypes.DEFAULT_TY
         await query.answer()
         difficulty_message = ''
 
-        if query.data == 'type_NDA':
-            selected_button_text = f"@{username} selected NDA-CDS English Grammar \n Please wait..."
+        if query.data == 'type_NDA0':
+            selected_button_text = f"@{username} selected NDA-CDS Phase 1 \n Please wait..."
             try:
                 await query.edit_message_text(text=selected_button_text)
             except (BadRequest, Forbidden, TimedOut) as e:
                 print(f"Error canceling the quiz: {e}")
-                
-            difficulty_keyboard = [
-                [InlineKeyboardButton("Synonyms", callback_data='difficulty_synonyms_nda')],
-                [InlineKeyboardButton("Active-passive", callback_data='difficulty_acitvepassive_nda')],
-                [InlineKeyboardButton("Fill in the Blanks", callback_data='difficulty_fillblank_nda')],
-                [InlineKeyboardButton("Idiom-Phrase", callback_data='difficulty_idiomphrase_nda')],
-            ]
             
-
-            reply_markup = InlineKeyboardMarkup(difficulty_keyboard)
+            reply_markup = InlineKeyboardMarkup(Nda_keyboard0())
             try:
                 await query.message.chat.send_message('NDA Selected \n Select the Grammar Quiz type:', reply_markup=reply_markup)
             except (BadRequest, Forbidden, TimedOut) as e:
                 print(f"Error canceling the quiz: {e}")
+        elif query.data == 'type_NDA1':
+            selected_button_text = f"@{username} selected NDA-CDS Phase 2 \n Please wait..."
+            try:
+                await query.edit_message_text(text=selected_button_text)
+            except (BadRequest, Forbidden, TimedOut) as e:
+                print(f"Error canceling the quiz: {e}")
+            
+            reply_markup = InlineKeyboardMarkup(Nda_keyboard1())
+            try:
+                await query.message.chat.send_message('NDA Selected \n Select the Grammar Quiz type:', reply_markup=reply_markup)
+            except (BadRequest, Forbidden, TimedOut) as e:
+                print(f"Error canceling the quiz: {e}")
+        elif query.data == 'type_NDA2':
+            selected_button_text = f"@{username} selected NDA-CDS Phase 3 \n Please wait..."
+            try:
+                await query.edit_message_text(text=selected_button_text)
+            except (BadRequest, Forbidden, TimedOut) as e:
+                print(f"Error canceling the quiz: {e}")
+            
+            reply_markup = InlineKeyboardMarkup(Nda_keyboard2())
+            try:
+                await query.message.chat.send_message('NDA Selected \n Select the Grammar Quiz type:', reply_markup=reply_markup)
+            except (BadRequest, Forbidden, TimedOut) as e:
+                print(f"Error canceling the quiz: {e}")
+        
         elif query.data == 'type_BASIC':
             selected_button_text = f"@{username} Selected Basic English Grammar\n Please wait..."
             try:
@@ -180,6 +229,7 @@ async def handle_type_selection(update: Update, context: ContextTypes.DEFAULT_TY
                 await query.message.chat.send_message('Basic Grammar Selected \n Select the Grammar Quiz type:', reply_markup=reply_markup)
             except (BadRequest, Forbidden, TimedOut) as e:
                 print(f"Error canceling the quiz: {e}")
+        
         elif query.data == 'type_AFCAT':
             selected_button_text = f"@{username} Selected AFCAT English Grammar\n Please wait..."
             try:
@@ -260,6 +310,24 @@ async def handle_difficulty_selection(update: Update, context: ContextTypes.DEFA
         elif query.data == 'difficulty_idiomphrase_nda':
             EXCEL_FILE = 'NDA_idiom_phrase1.xlsx'
             difficulty_message = "Idiom Phrase"
+        elif query.data == 'difficulty_nda_sentenceArrange':
+            EXCEL_FILE = 'Nda_SentenceArrangement1_updated.xlsx'
+            difficulty_message = "Sentence Arrangement"
+        elif query.data == 'difficulty_nda_ows':
+            EXCEL_FILE = 'Nda_1onewordsubstitute_updated.xlsx'
+            difficulty_message = "One word Substitution"
+        elif query.data == 'difficulty_nda_antonyms':
+            EXCEL_FILE = 'Nda_Antonyms_updated.xlsx'
+            difficulty_message = "Antonyms"
+        elif query.data == 'difficulty_nda_reasoning':
+            EXCEL_FILE = 'Nda_Reasoning1_updated.xlsx'
+            difficulty_message = "Reasoning"
+        elif query.data == 'difficulty_nda_pcb':
+            EXCEL_FILE = 'Nda_PCB_hindi1_updated.xlsx.xlsx'
+            difficulty_message = "Physics-Chem-bio"
+        elif query.data == 'difficulty_nda_maths':
+            EXCEL_FILE = 'Nda_Maths_updated.xlsx'
+            difficulty_message = "Maths"
 
         # Edit the message to indicate selection and remove other buttons
         Quiz_grammar_type = difficulty_message
@@ -273,10 +341,9 @@ async def handle_difficulty_selection(update: Update, context: ContextTypes.DEFA
 
         # Proceed with time limit selection
         time_keyboard = [
-            [InlineKeyboardButton("10 Seconds", callback_data='time_10')],
-            [InlineKeyboardButton("15 Seconds", callback_data='time_15')],
-            [InlineKeyboardButton("20 Seconds", callback_data='time_20')],
-            [InlineKeyboardButton("30 Seconds", callback_data='time_30')],
+            [InlineKeyboardButton("10 s", callback_data='time_10'), InlineKeyboardButton("15 s", callback_data='time_15'),InlineKeyboardButton("25 s", callback_data='time_20')],
+            [InlineKeyboardButton("35 s", callback_data='time_35'), InlineKeyboardButton("1 min", callback_data='time_60'),InlineKeyboardButton("1:30 s", callback_data='time_90')],
+            
         ]
         reply_markup = InlineKeyboardMarkup(time_keyboard)
         try:
@@ -306,8 +373,11 @@ async def handle_time_selection(update: Update, context: ContextTypes.DEFAULT_TY
         time_mapping = {
             'time_10': 10,
             'time_15': 15,
-            'time_20': 20,
-            'time_25': 30
+            'time_25': 25,
+            'time_35': 35,
+            'time_60': 60,
+            'time_95': 90,
+
         }
         selected_time_limit = time_mapping.get(query.data, 10)
         selected_time_text = f"@{username} selected {selected_time_limit} second To complete one quiz. "
@@ -343,9 +413,9 @@ async def cancel_quiz_command(update: Update, context: ContextTypes.DEFAULT_TYPE
         msg_id = update.message.chat.id
         if msg_id not in ALLOWED_GROUP_IDS:
             try:
-                await update.message.reply_text("To Start This Quiz In Your Chat or Group Talk to My Sizzling Owner @V_ale_n_cia and say thanks to me in later")
+                await update.message.reply_text("To Make your Own Bot and Start The Quiz In Your Group Talk to the Bot Creater @O000000000O00000000O")
             except (BadRequest, Forbidden, TimedOut) as e:
-                await update.message.chat.send_message("To Start This Quiz In Your Chat or Group Talk to My Sizzling Owner @V_ale_n_cia and say thanks to me in later")
+                await update.message.chat.send_message("To Make your Own Bot and Start The Quiz In Your Group Talk to the Bot Creater @O000000000O00000000O")
             return
         # Check if the quiz is active
         chat_id = update.message.chat.id
@@ -376,7 +446,7 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
         global selected_poll_count,active_poll,cancel_active
         query = update.callback_query
         username = query.from_user.username or query.from_user.first_name
-      
+        chat_id = -1002101571866
         # If quiz is not active, ignore this input
         if not is_quiz_active:
             await query.answer("Please start a new quiz with /startquiz or cancel with /cancelquiz")
@@ -392,7 +462,7 @@ async def handle_button_click(update: Update, context: ContextTypes.DEFAULT_TYPE
         except (BadRequest, Forbidden, TimedOut) as e:
                 print(f"Error canceling the quiz: {e}")
             
-        chat_id =-1001817635995
+        chat_id = -1001817635995
         cancel_active = True
         selected_polls = load_quiz_data(EXCEL_FILE,selected_poll_count) 
         selected_polls.append({
@@ -475,12 +545,13 @@ async def countdown_and_close_poll(poll_message, countdown_time, context):
 
         # Get the quiz data for this poll
         quiz_data = quiz_state[poll_id]
-        meaning = quiz_data["meaning"]  # Retrieve the meaning from quiz data
-        
-        # Send the meaning of the word after the poll ends
-        try:
-            await context.bot.send_message(chat_id=quiz_data["chat_id"], text=f"Meaning: {meaning}")
-        except (BadRequest, Forbidden, TimedOut) as e:
+        #meaning = quiz_data["meaning"]  # Retrieve the meaning from quiz data
+        meaning = " ".join(str(quiz_data["meaning"]).split())
+        print("this is a meaning",meaning)                  
+        if((meaning != 'nan') and (meaning!='') and (meaning != 'No meaning provided')):             
+            try:                 
+                await context.bot.send_message(chat_id=quiz_data["chat_id"], text=f"Meaning: {meaning}")             
+            except (BadRequest, Forbidden, TimedOut) as e:                 
                 print(f"Error canceling the quiz: {e}")
                 
         
@@ -619,6 +690,7 @@ def main():
 
     # Start the bot
     application.run_polling()
+    
 
 if __name__ == '__main__':
     main()
