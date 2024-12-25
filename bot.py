@@ -20,7 +20,7 @@ from telegram.error import Forbidden,BadRequest, TimedOut
 # Bot configuration
 TOKEN: Final = '8076642471:AAG7TpN3cYNtoZF-u_Z0rIUff4R2djstjeA'
 BOT_USERNAME: Final = '@slizyy_bot'
-ALLOWED_GROUP_IDS = [1001817635995,-1002114430690,-1002101571866, -1002114430690]
+ALLOWED_GROUP_IDS = [1001817635995,-1002114430690,-1002101571866, -1002114430690,-1002359766306]
 EXCEL_FILE = 'SYNO5.xlsx'
 
 
@@ -96,10 +96,7 @@ async def start_game_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
         print(chat_id)
         if chat_id not in ALLOWED_GROUP_IDS:
             try:
-                await update.message.chat.send_photo(
-                    photo="academyposter.jpg",  # Replace with the path or URL of the image
-                    caption="Join This Academy for amazing quizzes!"
-                )
+                
                 await update.message.reply_text("To Make your Own Bot and Start The Quiz In Your Group Talk to the Bot Creater @O000000000O00000000O")
             except (BadRequest, Forbidden, TimedOut) as e:
                 await update.message.chat.send_message("To Make your Own Bot and Start The Quiz In Your Group Talk to the Bot Creater @O000000000O00000000O")
